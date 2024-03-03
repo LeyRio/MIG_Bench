@@ -22,44 +22,33 @@ from transformers import CLIPProcessor,CLIPModel
 from PIL import Image
 from pytorch_fid import fid_score
 
-try:  # 使用 try 机制引用 moxing 包，避免本地与云端环境频繁切换引入问题
-    import moxing as mox
-    is_cloud = True
-except:
-    is_cloud = False
 
 from eval.ap import AveragePrecisionOnImages
 
 import time
-# 一点点检查
-# 1.将目标检测结果可视化出来，看看是否与图像对齐(可视化100张)
-# 2.测试100个样例，将其miou等中间数据均输出出来，查看具体效果
 
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:50"
+# os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:50"
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(DEVICE)
 
 # GroundingDINO config and checkpoint
 GROUNDING_DINO_CONFIG_PATH = "GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py"
-GROUNDING_DINO_CHECKPOINT_PATH = "../pretrained/groundingdino_swint_ogc.pth"
+GROUNDING_DINO_CHECKPOINT_PATH = "./pretrained/groundingdino_swint_ogc.pth"
 
 
 # Building GroundingDINO inference model
 grounding_dino_model = Model(model_config_path=GROUNDING_DINO_CONFIG_PATH, model_checkpoint_path=GROUNDING_DINO_CHECKPOINT_PATH)
 
-inception_model = torchvision.models.inception_v3(pretrained=False)
-state_dict = torch.load('../pretrained/inception_v3_google-0cc3c7bd.pth')
-inception_model.load_state_dict(state_dict)
+inception_model = torchvision.models.inception_v3(pretrained=True)
 
 # Segment-Anything checkpoint
 SAM_ENCODER_VERSION = "vit_h"
-SAM_CHECKPOINT_PATH = "../pretrained/sam_vit_h_4b8939.pth"
+SAM_CHECKPOINT_PATH = "./pretrained/sam_vit_h_4b8939.pth"
 
 sam = sam_model_registry[SAM_ENCODER_VERSION](checkpoint=SAM_CHECKPOINT_PATH).to(device = 'cuda')
 sam_predictor = SamPredictor(sam)
 
-clip_model = CLIPModel.from_pretrained('../pretrained/clip_tokenizer').cuda().eval()
-clip_processor = CLIPProcessor.from_pretrained('../pretrained/clip_tokenizer')
 
 imagenet_templates = [
     'a bad photo of a {}.',
@@ -167,19 +156,16 @@ def calc_clip_score(image,prompt,need_template = False):
             prompt_list.append(filled_text)
     else:
         prompt_list.append(prompt)
-    # print(prompt_list)
+
     inputs = clip_processor(text = prompt_list,images = image,return_tensors='pt',padding=True)
     for key in inputs.keys():
         inputs[key] = inputs[key].cuda().detach()
 
     outputs = clip_model(**inputs)
-
     torch.cuda.empty_cache()
     logits_per_image = outputs.logits_per_image
 
     return torch.mean(logits_per_image).cpu()
-
-
 
 def draw_box_desc(image, gt_bbox,pred_bbox,prompt,miou):
     pred_bbox = []
@@ -194,37 +180,45 @@ def draw_box_desc(image, gt_bbox,pred_bbox,prompt,miou):
     return image_draw_2
 
 def check_on_image(image = None,prompt = None,gt_bbox = None,attr = None,box_t = 0.25,text_t = 0.25,miou_threshold = 0.5,args = None,image_path = None):
-    # prompt 包含了 所有可能需要检测的类别 list
-    countsss = 0
     segment_label = {}
-    # prompt = attr
-    # attr = 'red'
 
     attr_flag = 0
     success_flag = 0
     
-
     p_max = 0
     p_index = 0
     total_max = 0
-    color_map = {'green color.':0,'yellow color.':1,'white color.':2,'black color.':3,'brown color.':4,'blue color.':5,'red color.':6}
+    '''
+    Currently, we support some simple color reviews. 
+    You can refer to https://stackoverflow.com/questions/36817133/identifying-the-range-of-a-color-in-hsv-using-opencv for more details, 
+    or to add your own more detailed color range. 
+    In conclusion, make sure that your evaluation of different models is under the same color range.
+    '''
+    # color_dict = {
+    #     'red':[{'Lower':np.array([0,43,35]),'Upper':np.array([6,255,255])},{'Lower':np.array([156,43,35]),'Upper':np.array([180,255,255])}],
+    #     'blue':{'Lower':np.array([78,43,35]),'Upper':np.array([124,255,255])},
+    #     'green':{'Lower':np.array([35,43,35]),'Upper':np.array([77,255,255])},
+    #     'yellow':{'Lower':np.array([20,43,35]),'Upper':np.array([34,255,255])},
+    #     'black':{'Lower':np.array([0,0,0]),'Upper':np.array([180,255,35])},
+    #     'white':{'Lower':np.array([0,0,221]),'Upper':np.array([180,43,255])},
+    #     'brown':{'Lower':np.array([6,43,35]),'Upper':np.array([25,255,255])},
+    # }
     color_dict = {
-        'red':[{'Lower':np.array([0,43,35]),'Upper':np.array([6,255,255])},{'Lower':np.array([156,43,35]),'Upper':np.array([180,255,255])}],
-        'blue':{'Lower':np.array([78,43,35]),'Upper':np.array([124,255,255])},
-        'green':{'Lower':np.array([35,43,35]),'Upper':np.array([77,255,255])},
-        'yellow':{'Lower':np.array([20,43,35]),'Upper':np.array([34,255,255])},
-        'black':{'Lower':np.array([0,0,0]),'Upper':np.array([180,255,35])},
+        'red':[{'Lower':np.array([0,50,70]),'Upper':np.array([9,255,255])},{'Lower':np.array([159,50,70]),'Upper':np.array([180,255,255])}],
+        'blue':{'Lower':np.array([90, 50, 70]),'Upper':np.array([128, 255, 255])},
+        'yellow':{'Lower':np.array([25,50,70]),'Upper':np.array([35,255,255])},
+        'green':{'Lower':np.array([36, 50, 70]),'Upper':np.array([89, 255, 255])},
+        'black':{'Lower':np.array([0,0,0]),'Upper':np.array([180,255,30])},
         'white':{'Lower':np.array([0,0,221]),'Upper':np.array([180,43,255])},
         'brown':{'Lower':np.array([6,43,35]),'Upper':np.array([25,255,255])},
     }
 
     CLASSES = [prompt]  # reading from json getting classes
 
+    # We set both the box_t and text_t as 0.25
     BOX_THRESHOLD = box_t
     TEXT_THRESHOLD = text_t
     NMS_THRESHOLD = 0.8
-
-    # Detecting nouns in the files
 
     # detect objects
     detections = grounding_dino_model.predict_with_classes(
@@ -238,10 +232,9 @@ def check_on_image(image = None,prompt = None,gt_bbox = None,attr = None,box_t =
     box_annotator = sv.BoxAnnotator()
     labels = [
         f"{CLASSES[class_id]} {confidence:0.2f}" 
-        for _, _, confidence, class_id, _ 
+        for _, confidence,class_id,  _ 
         in detections]
 
-        
     nms_idx = torchvision.ops.nms(
         torch.from_numpy(detections.xyxy), 
         torch.from_numpy(detections.confidence), 
@@ -263,10 +256,12 @@ def check_on_image(image = None,prompt = None,gt_bbox = None,attr = None,box_t =
         insert_area = iw * ih
         union_area = (pred_bbox[:,2] - pred_bbox[:,0]) * (pred_bbox[:,3] - pred_bbox[:,1]) + (gt_bbox[2] - gt_bbox[0]) * (gt_bbox[3] - gt_bbox[1]) - insert_area
         iou = insert_area / union_area
-        ovmax = np.max(iou) # 最大重叠
+        ovmax = np.max(iou)
         if ovmax < miou_threshold:
+            # if position is wrong, we simply return obj and attr wrong flag
             return 0,0,ovmax
         else:
+            # if position is right, we then check the attr of the instance
             success_flag = 1
             miou = ovmax
     else:
@@ -303,7 +298,7 @@ def check_on_image(image = None,prompt = None,gt_bbox = None,attr = None,box_t =
     if args.debug:
         print(f'checking target color is {attr}')
 
-    # 根据物体mask去除背景，替代为灰色背景
+    # remove the background of the image with gray color
     segment_mask = torch.from_numpy(mask_obj)
         
     detect_mask = torch.zeros(size=(512,512))
@@ -319,13 +314,10 @@ def check_on_image(image = None,prompt = None,gt_bbox = None,attr = None,box_t =
     image_mid = image_mid + rev_mask * color_bg
     image_mid = image_mid.astype(np.uint8)
 
-
-
     color_mask = check_on_color_cv(image_mid,prompt,color_dic,attr,args,image_path)
 
     color_mask = torch.from_numpy(color_mask)
     final_mask = torch.logical_and(detect_mask,color_mask).int()
-    # 根据颜色占比 与 实际物体占比 判断物体颜色
     # print(torch.sum(final_mask)/torch.sum(detect_mask))
     if torch.sum(detect_mask) == 0.0 or torch.sum(final_mask)/torch.sum(detect_mask) < 0.2:
         if args.debug:
@@ -360,71 +352,44 @@ def check_on_color_cv(image = None,class_name = None,color_dict = None,color_typ
         mask = cv2.inRange(dist_image,lower,upper)
     result_mask = mask
 
-    image_final = image * result_mask[:,:,np.newaxis]
-    image_final = image_final.astype(np.uint8)
-    output_dir = './output/'
-    image_final = cv2.cvtColor(image_final,code=cv2.COLOR_HSV2BGR)
-    if args.debug:
-        cv2.imwrite(os.path.join(output_dir, f"{color_type}_{class_name}_pred{image_path}.jpg"),result_mask[:,:,np.newaxis])
-        cv2.imwrite(os.path.join(output_dir, f"{color_type}_{class_name}_origin{image_path}.jpg"),image)
+    # image_final = image * result_mask[:,:,np.newaxis]
+    # image_final = image_final.astype(np.uint8)
+    # output_dir = args.debug_file_path
+    # image_final = cv2.cvtColor(image_final,code=cv2.COLOR_HSV2BGR)
 
     return result_mask
 
-# 命名标题时，采用 blue cat_red dog_42.jpg的形式，物体的顺序与出现的位置严格对应
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--image_dir", type=str, help="path to image file",default='obs://bucket-1664-huadong/code/ley1233020/A_Eval_Image/Fuser/fuser_output/attr_bench/eval_exp55_e161/model_ley_config_21/')
-    parser.add_argument('--gt_dir',type=str,help='path to origin image',default=None)
+    parser.add_argument("--image_dir", type=str, help="path to image file",default='/data1/liyou/data/exp190_epoch81_zdw_config_180_anno_single')
     parser.add_argument('--debug',action='store_true')
     parser.add_argument('--need_clip_score',action='store_true')
     parser.add_argument('--need_sucess_ratio',action='store_true')
-    parser.add_argument('--need_visor_score',action='store_true')
     parser.add_argument('--need_local_clip',action='store_true')
     parser.add_argument('--need_miou_score',action='store_true')
-    parser.add_argument('--need_instance_visor_cond',action='store_true')
-    parser.add_argument('--metric_name',type=str,default='test')
+    parser.add_argument('--metric_name',type=str,default='MIGC_1')
     parser.add_argument('--miou_threshold',type=float,default=0.5)
     parser.add_argument('--need_instance_sucess_ratio',action='store_true')
-    parser.add_argument('--save_obs_path',type=str,default='obs://bucket-veddata01/code/ley1233020/A_Metric/')
     parser.add_argument('--debug_file_path',type=str,default='./debug_path/')
+    parser.add_argument('--file_path',type=str,default='/data1/liyou/code/MIG/mig_bench.json')
     
     args = parser.parse_args()
-    args.need_clip_score = True
-    args.need_local_clip = True
-    args.need_sucess_ratio = True
-    args.need_visor_score = True
-    args.need_miou_score = True
-    args.need_instance_visor_cond = True
-    args.need_instance_sucess_ratio = True
-    args.debug = False
     miou_threshold = args.miou_threshold
 
-    
+    if args.need_clip_score:
+        clip_model = CLIPModel.from_pretrained('/data1/liyou/code/MIG_Bench/pretrained/clip/').cuda().eval()
+        clip_processor = CLIPProcessor.from_pretrained('/data1/liyou/code/MIG_Bench/pretrained/clip/')
 
-    # 加载参数和标注真实文件
     image_dir = args.image_dir
-    gt_dir = args.gt_dir
 
-    # 如果需要的话，从云端将图像copy过来
-    ori_image_dir = image_dir
     if not os.path.exists(image_dir):
-        if is_cloud:
-            print('copying generated image')
-            if os.path.isdir('/cache/test_sample/'):
-                rm_dir = '/cache/test_sample/'
-                os.system(f'rm -rf {rm_dir}')
-            mox.file.copy_parallel(image_dir,'/cache/test_sample/')
-            image_dir = '/cache/test_sample/'
-        else:
-            print('There is no picture!!!!')
-            args.need_clip_score = False
-            args.need_local_clip = False
-            args.need_sucess_ratio = False
-            args.need_visor_score = False
+        print('There is no picture!!!!')
+        args.need_clip_score = False
+        args.need_local_clip = False
+        args.need_sucess_ratio = False
     image_path_list = os.listdir(image_dir)
 
-
-    coco_path = './sample_prompt_color_split.json'
+    coco_path = args.file_path
     with open(coco_path,'r') as coco_file:
         coco_context = json.load(coco_file)
 
@@ -433,185 +398,99 @@ if __name__ == '__main__':
             os.system(f'rm -rf {args.debug_file_path}')
         os.makedirs(args.debug_file_path, exist_ok=True)
 
-
-
     count = 0 
-    need_check_instance = args.need_sucess_ratio or args.need_local_clip or args.need_visor_score or args.need_instance_sucess_ratio or args.need_miou_score or args.need_instance_visor_cond
-    need_segment_instance = args.need_sucess_ratio or args.need_visor_score or args.need_instance_sucess_ratio or args.need_miou_score or args.need_instance_visor_cond
+    need_check_instance = args.need_sucess_ratio or args.need_local_clip or args.need_instance_sucess_ratio or args.need_miou_score
+    need_segment_instance = args.need_sucess_ratio or args.need_instance_sucess_ratio or args.need_miou_score
     need_crop_instance =  args.need_local_clip
 
+    # Initialize the statistics for each metric.
+    # CLIP score
     clip_record = 0.0
     clip_count = 0
     
     loca_clip_record = 0.0
     loca_clip_count = 0
     
+    # MIOU
     miou_record = 0.0
     miou_count = 0
     miou_level_record = [0.0,0.0,0.0,0.0,0.0]
     miou_level_count = [0,0,0,0,0]
 
-
+    # Success Rate
     sucess_record = 0.0
     sucess_count = 0
     success_level_record = [0,0,0,0,0]
     sucess_level_count = [0,0,0,0,0]
 
-
+    # Instance Success Rate
     inst_suceess_count = 0
     inst_count = 0
     inst_success_level_count = [0,0,0,0,0]
     inst_level_count = [0,0,0,0,0]
 
-    miou_instance_level = [0.0,0.0,0.0,0.0,0.0]
-    miou_instance_count = [0,0,0,0,0]
-
-    visor_instance_count = 0
-    visor_acc_both_count = 0
-    visor_acc_obj_only_count = 0
-    visor_acc_obj_count = 0
-
-    visor_level_instance_count = [0,0,0,0,0]
-    visor_level_acc_both_count = [0,0,0,0,0]
-    visor_level_acc_obj_only_count = [0,0,0,0,0]
-    visor_level_acc_obj_count = [0,0,0,0,0]
-
-
-    inst_cond_count = 0
-    inst_cond_success = 0
-    inst_level_cond_count = [0,0,0,0,0]
-    inst_level_cond_success = [0,0,0,0,0]
-
-
-    visor_acc_obj_dict = {}
-    visor_acc_att_dict = {}
-    visor_acc_both_dict = {}
-    visor_level_acc_obj_dict = [{},{},{},{},{}]
-    visor_level_acc_att_dict = [{},{},{},{},{}]
-    visor_level_acc_both_dict = [{},{},{},{},{}]
-
-
     metric_result = {}
 
-    gt_per_image = {}
-    counts = 0
-    gt_per_image = {}
-    gt_count = {}
-
-    # 添加iou和单物体成功率
     for image_path in tqdm(image_path_list):
-        # 获取这张图片对应的image_id
+        '''
+        Currently, we need a uniform image naming format to support proper evaluation. 
+        The file you generate needs to end in a _cocoid.png form
+        '''
+        # read gt_label
         image_id = image_path.split('_')[-1].split('.')[0]
         coco_info = coco_context[image_id]
-        counts = counts + 1
 
         caption = coco_info['caption']
         gt_bbox_list = coco_info['segment']
 
-        # 读取图像
+        # read image
         image_abs_path = os.path.join(image_dir,image_path)
         image = cv2.imread(image_abs_path)
         if image.shape[0] != 512:
             image = cv2.resize(image, dsize=(512, 512))
-        image_draw = image.copy()
-        level = len(gt_bbox_list) - 2
-        # image_pil,image = load_image(image_abs_path)
-        # while True:
-        # if counts > 10:
-        #     break
-        instance_count = 0
-        instance_s_count = 0
 
+        level = len(gt_bbox_list) - 2
 
         if args.need_clip_score:
-
             clip_score = calc_clip_score(image,caption)
             clip_record = clip_record + clip_score.item()
             clip_count = clip_count + 1
 
         if need_check_instance:
-
-            # 先统计当前图像所有物体 的 类别，并存储其对应的真实值物体框
-            if image_id not in visor_acc_obj_dict.keys():
-                visor_acc_obj_dict[image_id] = []
-                visor_acc_att_dict[image_id] = []
-                visor_acc_both_dict[image_id] = []
-                visor_level_acc_obj_dict[level][image_id] = []
-                visor_level_acc_att_dict[level][image_id] = []
-                visor_level_acc_both_dict[level][image_id] = []
-
             if need_segment_instance:
                 sucess_obj_per_image = 1
                 sucess_attr_per_image = 1
-
                 for gt_instance in gt_bbox_list:
-                    instance_count = instance_count + 1
                     label_w_attr = gt_instance['label']
-                    label = " ".join(label_w_attr.split(" ")[1:])
-                    attr = label_w_attr.split(" ")[0]
+                    label = " ".join(label_w_attr.split(" ")[2:])
+                    attr = label_w_attr.split(" ")[1]
                     gt_bbox = np.array(gt_instance['bbox']) * 512
                     
-
-                    if args.need_visor_score or args.need_sucess_ratio or args.need_instance_sucess_ratio or args.need_miou_score or args.need_instance_visor_cond:
+                    if args.need_sucess_ratio or args.need_instance_sucess_ratio or args.need_miou_score:
                         sucess_obj,sucess_attr,miou = check_on_image(image,label,gt_bbox,attr,miou_threshold = miou_threshold,args = args,image_path = image_path)
                         sucess_obj_per_image = sucess_obj_per_image * sucess_obj
                         sucess_attr_per_image = sucess_attr_per_image * sucess_attr
-
-                    if sucess_obj:
-                        instance_s_count = instance_s_count + 1
 
                     if args.need_miou_score:
                         miou_record = miou_record + miou
                         miou_count = miou_count + 1
                         miou_level_record[level] = miou_level_record[level] + miou
                         miou_level_count[level] = miou_level_count[level] + 1
-
                     if args.need_instance_sucess_ratio:
                         inst_count = inst_count + 1
                         inst_level_count[level] = inst_level_count[level] + 1
                         if sucess_obj and sucess_attr:
                             inst_suceess_count = inst_suceess_count + 1
                             inst_success_level_count[level] = inst_success_level_count[level] + 1
-
-                    if args.need_instance_visor_cond:
-                        if sucess_obj:
-                            inst_level_cond_count[level] = inst_level_cond_count[level] + 1
-                            inst_cond_count = inst_cond_count + 1
-
-                            if sucess_attr:
-                                inst_cond_success = inst_cond_success + 1
-                                inst_level_cond_success[level] = inst_level_cond_success[level] + 1
                         
-
                 if args.need_sucess_ratio:
                     if sucess_obj_per_image * sucess_attr_per_image == 1:
                         sucess_record = sucess_record + 1
                         success_level_record[level] = success_level_record[level] + 1
                     sucess_count = sucess_count + 1
                     sucess_level_count[level] = sucess_level_count[level] + 1
-
-                if args.need_visor_score:
-                    visor_acc_obj_dict[image_id].append(sucess_obj_per_image)
-                    visor_acc_att_dict[image_id].append(sucess_attr_per_image)
-                    visor_acc_both_dict[image_id].append(sucess_obj_per_image * sucess_attr_per_image)
-
-                    visor_level_acc_obj_dict[level][image_id].append(sucess_obj_per_image)
-                    visor_level_acc_att_dict[level][image_id].append(sucess_attr_per_image)
-                    visor_level_acc_both_dict[level][image_id].append(sucess_obj_per_image * sucess_attr_per_image)
-                    
-                    visor_instance_count = visor_instance_count + 1
-                    visor_level_instance_count[level] =  visor_level_instance_count[level] + 1  
-                    if sucess_obj_per_image:
-                        visor_acc_obj_only_count = visor_acc_obj_only_count + 1
-                        visor_level_acc_obj_only_count[level] = visor_level_acc_obj_only_count[level] + 1
-
-                    if sucess_obj_per_image and sucess_attr_per_image:
-                        visor_acc_both_count = visor_acc_both_count + 1
-                        visor_level_acc_both_count[level] = visor_level_acc_both_count[level] + 1
-                    
                     
             if need_crop_instance:  
-
                 for instance in gt_bbox_list:
                     inst_bbox = instance['bbox']
                     inst_label = instance['label']
@@ -619,18 +498,18 @@ if __name__ == '__main__':
                     cropped_image = cv2.resize(cropped_image,(512,512))
 
                     if args.need_local_clip:
-                        # 是否需要补足成为模板？
                         local_clip_score = calc_clip_score(cropped_image,inst_label,need_template = True)
                         loca_clip_record = loca_clip_record + local_clip_score.item()
                         loca_clip_count = loca_clip_count + 1
 
     
-    # 输出并保存结果
+    # save the evaluation metric result
     print(f'Here is the metric:')
     if args.need_clip_score:
         clip_score = clip_record / clip_count
         metric_result['clip_score'] = clip_score
         print(f'CLIP score : {clip_score}')
+
     if args.need_local_clip:
         local_clip_score = loca_clip_record / loca_clip_count
         metric_result['local_clip_score'] = local_clip_score
@@ -646,50 +525,6 @@ if __name__ == '__main__':
         print(f'SUCESS RATIO: {sucess_ratio}')
         print(f'SUCESS LEVEL RATIO: {sucess_level_ratio}')
     
-    if args.need_visor_score:
-        visor_level_score = [0.0,0.0,0.0,0.0,0.0]
-        visor_level_cond_score = [0.0,0.0,0.0,0.0,0.0]
-        visor_level_num = [[0 for i in range(8)] for j in range(5)]
-
-        visor_score = visor_acc_both_count/visor_instance_count
-        visor_cond_score = visor_acc_both_count/ (visor_acc_obj_only_count + 1e-5)
-        # 逐句统计 VISOR1/2/3/4/5/6/7/8
-        visor_num = [0 for i in range(8)]
-        for p_promt in visor_acc_obj_dict.keys():
-            for i in range(8):
-                if sum(visor_acc_both_dict[p_promt]) >= (i + 1):
-                    visor_num[i] = visor_num[i] + 1
-        for i in range(8):
-            visor_num[i] = visor_num[i] / (len(list(visor_acc_obj_dict.keys())) + 1e-5)
-
-
-        for i in range(5):
-            visor_level_score[i] = visor_level_acc_both_count[i] / visor_level_instance_count[i]
-            visor_level_cond_score[i] = visor_level_acc_both_count[i] / (visor_level_acc_obj_only_count[i] + 1e-5)
-            for p_promt in visor_level_acc_obj_dict[i].keys():
-                for j in range(8):
-                    if sum(visor_level_acc_obj_dict[i][p_promt]) >= (j + 1):
-                        visor_level_num[i][j] = visor_level_num[i][j] + 1
-            for j in range(8):
-                visor_level_num[i][j] = visor_level_num[i][j] / (len(list(visor_level_acc_obj_dict[i].keys())) + 1e-5)
-
-        metric_result['visor_score'] = visor_score
-        metric_result['visor_cond_score'] = visor_cond_score
-        metric_result['visor_num_score'] = visor_num
-        metric_result['visor_level_score'] = visor_level_score
-        metric_result['visor_level_cond_score'] = visor_level_cond_score
-        metric_result['visor_level_num_score'] = visor_level_num
-        metric_result['Instance_split_rate'] = instance_s_count / instance_count
-
-        print(f'VISOR SCORE: {visor_score}')
-        print(f'VISOR_COND SCORE: {visor_cond_score}')
-        print(f'VISOR_num SCORE: {visor_num}')
-
-        print(f'VISOR LEVEL SCORE: {visor_level_score}')
-        print(f'VISOR_LEVEL_COND SCORE: {visor_level_cond_score}')
-        print(f'VISOR_LEVEL_num SCORE: {visor_level_num}')
-        print(f'Instance_split_rate: {instance_s_count / instance_count}')
-
     if args.need_instance_sucess_ratio:
         inst_level_sr = [0.0,0.0,0.0,0.0,0.0]
         inst_sr = inst_suceess_count / inst_count
@@ -709,29 +544,15 @@ if __name__ == '__main__':
         metric_result['miou_level'] = miou_level_score
         print(f'MIOU SCORE: {miou_score}')
         print(f'MIOU LEVEL SCORE : {miou_level_score}')
-
-    if args.need_instance_visor_cond:
-        instance_level_visor_cond = [0.0,0.0,0.0,0.0,0.0]
-        instance_visor_cond = inst_cond_success / inst_cond_count
-        for i in range(5):
-            instance_level_visor_cond[i] = inst_level_cond_success[i] / inst_level_cond_count[i]
-        metric_result['instance_visor_cond'] = instance_visor_cond
-        metric_result['instance_level_visor_cond'] = instance_level_visor_cond
-        print(f'INST VISOR COND: {instance_visor_cond}')
-        print(f'INST LEVEL VISOR COND: {instance_level_visor_cond}')
         
-
-
     metric_result['metric_name'] = args.metric_name
-    metric_result['image_path'] = ori_image_dir
+    metric_result['image_path'] = image_dir
     
     
-    if is_cloud:
-        result = json.dumps(metric_result)
-        with open(f'./metric_{args.metric_name}.json','w') as output_f:
-            output_f.write(result)
-        # mox.file.copy_parallel(f'./metric_{args.metric_name}.json',os.path.join(args.save_obs_path,f'./metric_{args.metric_name}.json'))
-        print('Evaluation is Over!!!')
+    result = json.dumps(metric_result)
+    with open(f'./metric_{args.metric_name}.json','w') as output_f:
+        output_f.write(result)
+    print('Evaluation is Over!!!')
         
 
         

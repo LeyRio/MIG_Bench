@@ -1,0 +1,6 @@
+*/__pycache__
+/GroundingDINO/build/
+/GroundingDINO/dist/
+/GroundingDINO/groundingdino.egg-info
+*.egg-info
+/pretrained

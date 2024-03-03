@@ -14,13 +14,15 @@ def get_tokenlizer(text_encoder_type):
             )
     print("final text_encoder_type: {}".format(text_encoder_type))
 
+    text_encoder_type = '/data1/liyou/code/MIG_Bench/pretrained/bert-base-uncased'
     tokenizer = AutoTokenizer.from_pretrained(text_encoder_type)
     return tokenizer
 
 
 def get_pretrained_language_model(text_encoder_type):
     if text_encoder_type == "bert-base-uncased":
-        return BertModel.from_pretrained(text_encoder_type)
+        # return BertModel.from_pretrained(text_encoder_type)
+        return BertModel.from_pretrained('/data1/liyou/code/MIG_Bench/pretrained/bert-base-uncased')
     if text_encoder_type == "roberta-base":
         return RobertaModel.from_pretrained(text_encoder_type)
     raise ValueError("Unknown text_encoder_type {}".format(text_encoder_type))

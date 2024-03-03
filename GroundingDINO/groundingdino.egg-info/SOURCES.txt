@@ -2,6 +2,10 @@ LICENSE
 README.md
 pyproject.toml
 setup.py
+/data1/liyou/code/MIG_Bench/GroundingDINO/groundingdino/models/GroundingDINO/csrc/cuda_version.cu
+/data1/liyou/code/MIG_Bench/GroundingDINO/groundingdino/models/GroundingDINO/csrc/vision.cpp
+/data1/liyou/code/MIG_Bench/GroundingDINO/groundingdino/models/GroundingDINO/csrc/MsDeformAttn/ms_deform_attn_cpu.cpp
+/data1/liyou/code/MIG_Bench/GroundingDINO/groundingdino/models/GroundingDINO/csrc/MsDeformAttn/ms_deform_attn_cuda.cu
 groundingdino/__init__.py
 groundingdino/version.py
 groundingdino.egg-info/PKG-INFO
