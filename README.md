@@ -79,14 +79,14 @@ Put all these checkpoints under ../pretrained/ folder:
 ## Evaluation Pipeline
 
 ### Step 1 (Optional) Sampling MIG prompts
-You can choose to resample prompts for evaluation. You can check the entire steps for [Resampling](./bench_resample.md):
+You can choose to resample prompts for evaluation. You can check [the entire steps of Resampling](./bench_resample.md).
 
-You can also generate your image on the 800 prompts that have been sampled and evaluate the performance from [MIG-Bench](https://drive.google.com/drive/folders/1mXxO7miVqgTq3N6q2QS7gFp_ML-qpsw2?usp=sharing).
+You can also generate your image on the 800 prompts that have been sampled from [MIG-Bench](https://drive.google.com/drive/folders/1mXxO7miVqgTq3N6q2QS7gFp_ML-qpsw2?usp=sharing).
 
 ### Step 2 Generation
 Use the sampled prompts and layouts to generate images.
 
-You can also try our [MIGC](https://github.com/limuloo/MIGC) method.
+You can try our [MIGC](https://github.com/limuloo/MIGC) method, hope you enjoy it.
 
 ### Step 3 Evaluation
 Finally, you can start evaluating your model now.
@@ -100,7 +100,7 @@ python eval_mig.py \
 ```
 
 ## Evaluation Results
-Based on the new bench, we sampled 800 images and compared them with InstanceDiffusion, GLIGEN, etc. On MIG-Bench, the results are shown below. You can also find the image results and bench layout information that we generate in some of the methods in the [Example](https://drive.google.com/drive/folders/1UyhNpZ099OTPy5ILho2cmWkiOH2j-FrB?usp=sharing).
+We re-sampled a version of the COCO-MIG benchmark, filtering out examples related to humans. Based on the new version of bench, we sampled 800 images and compared them with InstanceDiffusion, GLIGEN, etc. On MIG-Bench, the results are shown below. You can also find the image results and bench layout information that we generate in some of the methods in the [Example](https://drive.google.com/drive/folders/1UyhNpZ099OTPy5ILho2cmWkiOH2j-FrB?usp=sharing).
 
 
 
@@ -218,9 +218,7 @@ Based on the new bench, we sampled 800 images and compared them with InstanceDif
 </table>
 
 ## Acknowledgements
-- [GroundedSAM](https://github.com/IDEA-Research/Grounded-Segment-Anything)
-- [SAM](https://github.com/facebookresearch/segment-anything)
-- [GroundingDINO](https://github.com/IDEA-Research/GroundingDINO)
+MIG-Bench is based on [GroundedSAM](https://github.com/IDEA-Research/Grounded-Segment-Anything), [SAM](https://github.com/facebookresearch/segment-anything), and [GroundingDINO](https://github.com/IDEA-Research/GroundingDINO). We appreciate their outstanding contributions.
 
 
 
