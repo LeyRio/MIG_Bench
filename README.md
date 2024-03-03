@@ -17,7 +17,7 @@ In the Text-to-Image task, facing complex texts with multiple instances and rich
 
 The MIG bench is based on COCO images and their layouts, using the color attribute of instances as the starting point. It filters out layouts with smaller areas and instances related to humans and assigns a random color to each instance. Through specific templates, it can also construct a global prompt for each image. This bench, constructed in this way, not only retains the relatively natural distribution of COCO but also introduces complex attributes and counterfactual cases through random color assignment, greatly increasing the difficulty of generation, thus making it challenging.
 
-During evaluation, we utilize the GroundingDINO model to detect and segment each instance. We then analyze the distribution of colors in the HSV color space for each object and calculate the proportion of the corresponding color to determine if the object's color meets the requirements. By calculating the proportion of instances correctly generated in terms of attributes and positions, along with their corresponding Mean Intersection over Union (MIOU), we reflect the model's performance in position and attribute control.
+During evaluation, we utilize the GroundedSAM model to detect and segment each instance. We then analyze the distribution of colors in the HSV color space for each object and calculate the proportion of the corresponding color to determine if the object's color meets the requirements. By calculating the proportion of instances correctly generated in terms of attributes and positions, along with their MIOU, we reflect the model's performance in position and attribute control.
 
 You can find more details in our [Paper](https://arxiv.org/pdf/2402.05408.pdf).
 
@@ -131,7 +131,7 @@ Based on the new bench, we sampled 800 images and compared them with InstanceDif
   </thead>
   <tbody>
 	<tr>
-      <td>[Box-Diffusion](https://github.com/showlab/BoxDiff)</td>
+      <td><a href="https://github.com/showlab/BoxDiff">Box-Diffusion</a></td>
       <td>0.37</td>
       <td>0.33</td>
       <td>0.25</td>
@@ -148,7 +148,7 @@ Based on the new bench, we sampled 800 images and compared them with InstanceDif
     <td>ICCV2023</td>
     </tr>
 	<tr>
-      <td>[Gligen](https://github.com/gligen/GLIGEN)</td>
+      <td><a href="https://github.com/gligen/GLIGEN">Gligen</a></td>
       <td>0.37</td>
       <td>0.29</td>
       <td>0.253</td>
@@ -165,7 +165,7 @@ Based on the new bench, we sampled 800 images and compared them with InstanceDif
     <td>CVPR2023</td>
     </tr>
 	<tr>
-      <td>[ReCo](https://github.com/microsoft/ReCo)</td>
+      <td><a href="https://github.com/microsoft/ReCo">ReCo</a></td>
       <td>0.55</td>
       <td>0.48</td>
       <td>0.49</td>
@@ -182,7 +182,7 @@ Based on the new bench, we sampled 800 images and compared them with InstanceDif
     <td>CVPR2023</td>
     </tr>
 	<tr>
-      <td>[InstanceDiffusion](https://github.com/frank-xwang/InstanceDiffusion)</td>
+      <td><a href="https://github.com/frank-xwang/InstanceDiffusion">InstanceDiffusion</a></td>
       <td>0.52</td>
       <td>0.48</td>
       <td>0.50</td>
@@ -199,7 +199,7 @@ Based on the new bench, we sampled 800 images and compared them with InstanceDif
     <td>CVPR2024</td>
     </tr>
 	<tr>
-      <td>[Ours](https://github.com/limuloo/MIGC)</td>
+      <td><a href="https://github.com/limuloo/MIGC">Ours</a></td>
       <td>0.64</td>
       <td>0.58</td>
       <td>0.57</td>
