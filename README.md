@@ -131,7 +131,7 @@ Based on the new bench, we sampled 800 images and compared them with InstanceDif
   </thead>
   <tbody>
 	<tr>
-      <td>Box-Diffusion</td>
+      <td>[Box-Diffusion](https://github.com/showlab/BoxDiff)</td>
       <td>0.37</td>
       <td>0.33</td>
       <td>0.25</td>
@@ -148,7 +148,7 @@ Based on the new bench, we sampled 800 images and compared them with InstanceDif
     <td>ICCV2023</td>
     </tr>
 	<tr>
-      <td>Gligen</td>
+      <td>[Gligen](https://github.com/gligen/GLIGEN)</td>
       <td>0.37</td>
       <td>0.29</td>
       <td>0.253</td>
@@ -165,7 +165,7 @@ Based on the new bench, we sampled 800 images and compared them with InstanceDif
     <td>CVPR2023</td>
     </tr>
 	<tr>
-      <td>ReCo</td>
+      <td>[ReCo](https://github.com/microsoft/ReCo)</td>
       <td>0.55</td>
       <td>0.48</td>
       <td>0.49</td>
@@ -182,7 +182,7 @@ Based on the new bench, we sampled 800 images and compared them with InstanceDif
     <td>CVPR2023</td>
     </tr>
 	<tr>
-      <td>InstanceDiffusion</td>
+      <td>[InstanceDiffusion](https://github.com/frank-xwang/InstanceDiffusion)</td>
       <td>0.52</td>
       <td>0.48</td>
       <td>0.50</td>
@@ -199,7 +199,7 @@ Based on the new bench, we sampled 800 images and compared them with InstanceDif
     <td>CVPR2024</td>
     </tr>
 	<tr>
-      <td>Ours</td>
+      <td>[Ours](https://github.com/limuloo/MIGC)</td>
       <td>0.64</td>
       <td>0.58</td>
       <td>0.57</td>
