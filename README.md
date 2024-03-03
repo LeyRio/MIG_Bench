@@ -32,6 +32,8 @@ conda install pytorch==1.11.0 torchvision cudatoolkit=11.3.1 -c pytorch
 
 export AM_I_DOCKER=False
 export BUILD_WITH_CUDA=True
+export CUDA_HOME=/path/to/cuda-11.3/
+
 python -m pip install -e segment_anything
 python -m pip install -e GroundingDINO
 
