@@ -220,7 +220,7 @@ We re-sampled a version of the COCO-MIG benchmark, filtering out examples relate
 </table>
 
 ## Acknowledgements
-MIG-Bench is based on [GroundedSAM](https://github.com/IDEA-Research/Grounded-Segment-Anything), [SAM](https://github.com/facebookresearch/segment-anything), and [GroundingDINO](https://github.com/IDEA-Research/GroundingDINO). We appreciate their outstanding contributions.
+MIG-Bench is based on [GroundedSAM](https://github.com/IDEA-Research/Grounded-Segment-Anything), [SAM](https://github.com/facebookresearch/segment-anything),[CLIP](https://github.com/openai/CLIP), [Bert](https://github.com/google-research/bert) and [GroundingDINO](https://github.com/IDEA-Research/GroundingDINO). We appreciate their outstanding contributions.
 
 
 
