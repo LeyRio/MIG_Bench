@@ -3,7 +3,6 @@ The MIG benchmark of CVPR2024 MIGC: Multi-Instance Generation Controller for Tex
 
 ### [[Paper]](https://arxiv.org/pdf/2402.05408.pdf)     [[Project Page]](https://migcproject.github.io/)  [[Code]](https://github.com/limuloo/MIGC) 
 **MIGC: Multi-Instance Generation Controller for Text-to-Image Synthesis**
-<br>_Dewei Zhou, You Li, Fan Ma, Xiaoting Zhang, Yi Yang_<br>
 ## To Do List
 - [x] MIG Bench File
 - [x] Evaluation
@@ -109,8 +108,8 @@ Based on the new bench, we sampled 800 images and compared them with InstanceDif
   <thead>
     <tr>
       <th rowspan="2" style="text-align: center;">Method</th>
-      <th colspan="6" style="text-align: center;">MIOU</th>
-      <th colspan="6" style="text-align: center;">Instance Success Rate</th>
+      <th colspan="6" style="text-align: center;">MIOU↑</th>
+      <th colspan="6" style="text-align: center;">Instance Success Rate↑</th>
 	  <th rowspan="2" style="text-align: center;">Model Type</th>
     <th rowspan="2" style="text-align: center;">Publication</th>
     </tr>
@@ -200,18 +199,18 @@ Based on the new bench, we sampled 800 images and compared them with InstanceDif
     </tr>
 	<tr>
       <td><a href="https://github.com/limuloo/MIGC">Ours</a></td>
-      <td>0.64</td>
-      <td>0.58</td>
-      <td>0.57</td>
-      <td>0.54</td>
-      <td>0.57</td>
-      <td>0.56</td>
-	  <td>0.74</td>
-      <td>0.67</td>
-      <td>0.67</td>
-      <td>0.63</td>
-      <td>0.66</td>
-      <td>0.66</td>
+      <td><b>0.64</b></td>
+      <td><b>0.58</b></td>
+      <td><b>0.57</b></td>
+      <td><b>0.54</b></td>
+      <td><b>0.57</b></td>
+      <td><b>0.56</b></td>
+	  <td><b>0.74</b></td>
+      <td><b>0.67</b></td>
+      <td><b>0.67</b></td>
+      <td><b>0.63</b></td>
+      <td><b>0.66</b></td>
+      <td><b>0.66</b></td>
 	  <td>Adapter</td>
     <td>CVPR2024</td>
     </tr>
